@@ -2,6 +2,7 @@ use std::fs::read_to_string;
 
 use anyhow::Result;
 use clap::Parser;
+use itertools::Itertools;
 use nom;
 use regex;
 use strum;
@@ -23,10 +24,47 @@ fn main() -> Result<()> {
 }
 
 fn part_1(infile: &str) -> usize {
-    todo!()
+    // read the lists
+
+    let mut left: Vec<usize> = vec![];
+    let mut right: Vec<usize> = vec![];
+
+    for (l, r) in infile.split_whitespace().tuples() {
+        left.push(l.parse::<usize>().unwrap());
+        right.push(r.parse::<usize>().unwrap());
+    }
+
+    // sort the lists
+
+    left.sort();
+    right.sort();
+
+    // sum of pairwise absolute differences
+    let mut tot = 0;
+    for k in 0..left.len() {
+        tot += left[k].abs_diff(right[k])
+    }
+
+    tot
 }
 fn part_2(infile: &str) -> usize {
-    todo!()
+    let mut left: Vec<usize> = vec![];
+    let mut right: Vec<usize> = vec![];
+
+    for (l, r) in infile.split_whitespace().tuples() {
+        left.push(l.parse::<usize>().unwrap());
+        right.push(r.parse::<usize>().unwrap());
+    }
+
+    let r_ctr = right.iter().counts();
+
+    let mut tot = 0;
+
+    for k in left {
+        tot += k * r_ctr.get(&k).unwrap_or(&0);
+    }
+
+    tot
 }
 
 #[cfg(test)]
