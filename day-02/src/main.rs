@@ -63,6 +63,10 @@ fn part_2(infile: &str) -> usize {
             count += 1;
         } else {
             // experimentally remove a level
+            // (level: an item in the list)
+            // we do this by iterating k in 0..=lenght
+            // then skipping the k'th item
+            // (by use of enumerate and filter_map)
             for k in 0..=deltas.len() {
                 let deltwo: Vec<i32> = l
                     .split_whitespace()

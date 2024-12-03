@@ -21,5 +21,5 @@ rm "Cargo.toml.bak" "$newday/Cargo.toml.bak"
 git add "Cargo.toml" "$newday"
 git commit -am "day-$daynum"
 
-curl "https://adventofcode.com/2024/day/$daynum/input" --header "Cookie: $(cat .token)" > "$newday/input.txt"
+curl "https://adventofcode.com/2024/day/$daynum/input" --header "Cookie: session=$(cat .token)" > "$newday/input.txt"
 
