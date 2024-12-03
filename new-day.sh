@@ -2,7 +2,7 @@
 
 # setopt verbose
 
-daynum=$(( $(basename day-*/ | sed -e 's/day-//' | tail -n 1) + 1))
+daynum=$(( $(find day-* -type d -d 0 | sed -e 's/day-//' | sort | tail -n 1) + 1))
 
 printf -v newday -- 'day-%02d' "$daynum"
 
