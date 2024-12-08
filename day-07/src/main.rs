@@ -31,23 +31,33 @@ enum Ops {
     Concat,
 }
 
-#[memoize(Capacity:8192)]
-fn eval_ops(mut ops: VecDeque<Ops>, mut vals: VecDeque<u128>) -> u128 {
+//#[memoize(Capacity:8192)]
+// fun fact: the overhead here slowed things down by a lot!
+
+fn eval_ops(mut ops: VecDeque<Ops>, mut vals: VecDeque<u128>, target: u128) -> Option<u128> {
     // println!("\t\t{ops:?}\n\t\t{vals:?}");
 
     let right = vals.pop_back().unwrap();
 
     if let Some(op) = ops.pop_back() {
-        match op {
-            Ops::Add => return eval_ops(ops, vals) + right,
-            Ops::Mul => return eval_ops(ops, vals) * right,
+        let output = match op {
+            Ops::Add => eval_ops(ops, vals, target - right)? + right,
+            Ops::Mul => eval_ops(ops, vals, target / right + 1)? * right,
+            // we can only have a loose bound on this one, I think
             Ops::Concat => {
-                let left = eval_ops(ops, vals);
-                return left * 10_u128.pow(right.checked_ilog10().unwrap_or(0) + 1) + right;
+                let shift = 10_u128.pow(right.checked_ilog10().unwrap_or(0) + 1);
+                let left = eval_ops(ops, vals, target / shift)?;
+                left * shift + right
             }
+        };
+        if output <= target {
+            return Some(output);
+        } else {
+            return None;
         }
     } else {
-        return right;
+        // last (only?) value -- no more ops to apply
+        return Some(right);
     }
 }
 
@@ -99,7 +109,7 @@ fn part_1(infile: &str) -> u128 {
 
                 // println!("{rez}?\n\t{ops:?}\n\t{vals:?}");
 
-                if rez == eval_ops(ops.clone(), vals.clone()) {
+                if Some(rez) == eval_ops(ops.clone(), vals.clone(), rez) {
                     // println!("{rez} = \n{ops:?}\n{vals:?}");
                     out = Some(rez);
                     break;
@@ -149,11 +159,14 @@ fn part_2(infile: &str) -> u128 {
                     kk = kk / 3;
                 }
 
-                if rez == eval_ops(ops.clone(), vals.clone()) {
+                let tester = eval_ops(ops.clone(), vals.clone(), rez);
+                println!("{rez}    {k}    {tester:?}");
+                if Some(rez) == tester {
                     // println!("{rez} = \n{ops:?}\n{vals:?}");
                     out = Some(rez);
                     break;
                 }
+                // thought: do we test in ascending order?
             }
             out
         })
@@ -190,9 +203,10 @@ mod test {
         assert_eq!(
             eval_ops(
                 VecDeque::from(vec![Ops::Concat]),
-                VecDeque::from(vec![1, 2])
+                VecDeque::from(vec![1, 2]),
+                12
             ),
-            12
+            Some(12)
         );
     }
 
@@ -201,9 +215,29 @@ mod test {
         assert_eq!(
             eval_ops(
                 VecDeque::from(vec![Ops::Add, Ops::Mul, Ops::Add]),
-                VecDeque::from(vec![11, 6, 16, 20])
+                VecDeque::from(vec![11, 6, 16, 20]),
+                292
             ),
-            292
+            Some(292)
+        );
+    }
+
+    #[test]
+    fn eval_ops_optim_1() {
+        assert_eq!(
+            eval_ops(
+                VecDeque::from([Ops::Mul, Ops::Mul, Ops::Mul]),
+                VecDeque::from([4, 4, 4, 4]),
+                16
+            ),
+            None
+        );
+    }
+    #[test]
+    fn eval_ops_optim_2() {
+        assert_eq!(
+            eval_ops(VecDeque::from([Ops::Add]), VecDeque::from([4, 4]), 16),
+            Some(8)
         );
     }
 }
