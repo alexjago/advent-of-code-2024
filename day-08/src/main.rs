@@ -45,7 +45,7 @@ fn part_1(infile: &str) -> usize {
         }
     });
 
-    println!("{}", <HashMap<Coord, char> as Grid<char>>::visualise(&grid));
+    // println!("{}", <HashMap<Coord, char> as Grid<char>>::visualise(&grid));
 
     // need a reverse LUT
 
@@ -76,7 +76,7 @@ fn part_1(infile: &str) -> usize {
                 let nx = ix + dx;
                 let ny = iy + dy;
 
-                println!("{cha}: ({ix}, {iy}) & ({jx}, {jy}) => ({nx}, {ny})");
+                // println!("{cha}: ({ix}, {iy}) & ({jx}, {jy}) => ({nx}, {ny})");
 
                 if nx >= 0 && nx < xmax && ny >= 0 && ny < ymax {
                     outpos.insert([nx, ny], cha);
@@ -85,10 +85,10 @@ fn part_1(infile: &str) -> usize {
         }
     }
 
-    println!(
-        "{}",
-        <HashMap<Coord, char> as Grid<char>>::visualise(&outpos)
-    );
+    // println!(
+    //     "{}",
+    //     <HashMap<Coord, char> as Grid<char>>::visualise(&outpos)
+    // );
 
     // 290 was too high, probably because not unique
     // actually, because I had infile.len() rather than infile.lines().count()
@@ -113,7 +113,7 @@ fn part_2(infile: &str) -> usize {
         }
     });
 
-    println!("{}", <HashMap<Coord, char> as Grid<char>>::visualise(&grid));
+    // println!("{}", <HashMap<Coord, char> as Grid<char>>::visualise(&grid));
 
     // need a reverse LUT
 
@@ -145,7 +145,7 @@ fn part_2(infile: &str) -> usize {
                     let nx = ix + dx * k;
                     let ny = iy + dy * k;
 
-                    println!("{cha}: ({ix}, {iy}) & ({jx}, {jy}) => ({nx}, {ny})");
+                    // println!("{cha}: ({ix}, {iy}) & ({jx}, {jy}) => ({nx}, {ny})");
 
                     if nx >= 0 && nx < xmax && ny >= 0 && ny < ymax {
                         outpos.insert([nx, ny], cha);
@@ -155,13 +155,12 @@ fn part_2(infile: &str) -> usize {
         }
     }
 
-    println!(
-        "{}",
-        <HashMap<Coord, char> as Grid<char>>::visualise(&outpos)
-    );
+    // println!(
+    //     "{}",
+    //     <HashMap<Coord, char> as Grid<char>>::visualise(&outpos)
+    // );
 
-    // 290 was too high, probably because not unique
-    // actually, because I had infile.len() rather than infile.lines().count()
+    // worked first try!
     outpos.iter().map(|(k, _)| k).unique().count()
 }
 
