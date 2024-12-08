@@ -23,3 +23,4 @@ git commit -am "day-$daynum"
 
 curl "https://adventofcode.com/2024/day/$daynum/input" --header "Cookie: session=$(cat .token)" > "$newday/input.txt"
 
+open -a 'Safari' "https://adventofcode.com/2024/day/$daynum"

@@ -16,12 +16,12 @@ strum = "0.25.0"
 derive_more = "0.99.17"
 winnow = "0.5.28"
 num = { version = "0.4.1", features = ["num-bigint"] }
-# mapgrid = { version = "0.1.0", path = "mapgrid" }
+mapgrid = { version = "0.2.0", path = "mapgrid" }
 rayon = "1.8.0"
 memoize = "0.4.2"
 
 [workspace]
-members = ["day-*", "template"] # "mapgrid"
+members = ["day-*", "template", "mapgrid"]
 
 
 [[bin]]
