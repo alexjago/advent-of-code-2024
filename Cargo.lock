@@ -15,6 +15,7 @@ dependencies = [
  "nom",
  "num",
  "petgraph",
+ "range_split",
  "rayon",
  "regex",
  "strum",
@@ -556,6 +557,11 @@ checksum = "b5b9d34b8991d19d98081b46eacdd8eb58c6f2b201139f7c5f643cc155a633af"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "range_split"
+version = "0.1.0"
+source = "git+https://github.com/alexjago/range-split#a2c555355b718ef63a21884ee22d0af88a857fa9"
 
 [[package]]
 name = "rayon"

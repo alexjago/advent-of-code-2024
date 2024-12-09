@@ -19,6 +19,7 @@ num = { version = "0.4.1", features = ["num-bigint"] }
 mapgrid = { version = "0.2.0", path = "mapgrid" }
 rayon = "1.8.0"
 memoize = "0.4.2"
+range_split = { git = "https://github.com/alexjago/range-split", version = "0.1.0" }
 
 [workspace]
 members = ["day-*", "template", "mapgrid"]
