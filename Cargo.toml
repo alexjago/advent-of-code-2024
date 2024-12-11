@@ -1,6 +1,6 @@
 [package]
 name = "advent-of-code-2024"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -27,7 +27,7 @@ members = ["day-*", "template", "mapgrid"]
 
 [[bin]]
 name = "today"
-path = "day-10/src/main.rs"
+path = "day-11/src/main.rs"
 
 
 [profile.dev.package."*"]
