@@ -238,7 +238,9 @@ fn part_2(infile: &str) -> usize {
                     _ => unimplemented!(),
                 },
             );
-            corners.insert(v.clone(), '@');
+            if !corners.contains_key(v) {
+                corners.insert(v.clone(), '@');
+            }
         }
 
         println!(
