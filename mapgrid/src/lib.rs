@@ -149,6 +149,16 @@ where
     }
 }
 
+/// Elementwise add
+pub fn add(a: Coord, b: Coord) -> Coord {
+    [a[0] + b[0], a[1] + b[1]]
+}
+
+/// Elementwise subtract
+pub fn subtract(a: Coord, b: Coord) -> Coord {
+    [a[0] - b[0], a[1] - b[1]]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
