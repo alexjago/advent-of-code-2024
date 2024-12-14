@@ -8,7 +8,10 @@ use clap::Parser;
 use itertools::Itertools;
 use mapgrid::*;
 use nom;
-use rayon;
+use rayon::{
+    self,
+    iter::{IntoParallelIterator, ParallelIterator},
+};
 use regex::Regex;
 use strum;
 
@@ -104,81 +107,94 @@ fn part_2(infile: &str, width: isize, height: isize) -> isize {
 
     const SECONDS_TOT: isize = 10_isize.pow(5);
 
-    for seconds in 0..SECONDS_TOT {
+    if let Some(seconds) = (0..SECONDS_TOT)
+        .into_par_iter()
+        .filter_map(|s| p2_helper(&robots_orig, s, width, height))
+        .min()
+    {
+        return seconds;
+    } else {
+        println!(
+        "Could not find tree after {SECONDS_TOT} seconds; here's the grid on the last iteration"
+    );
+
         let grid: HashSet<Coord> = robots_orig
             .iter()
             .map(|([px, py], [vx, vy])| {
                 [
-                    (px + seconds * vx + (seconds * width)) % width,
-                    (py + seconds * vy + (seconds * height)) % height,
+                    (px + SECONDS_TOT * vx + (SECONDS_TOT * width)) % width,
+                    (py + SECONDS_TOT * vy + (SECONDS_TOT * height)) % height,
                 ]
             })
             .collect();
 
-        // we're looking for a picture of a christmas tree, which if rumour is to be believed means a block similar to the below
-        /*
-        ....#....
-        ...###...
-        ..#####..
-        .#######.
-        */
-
-        // we have 500 robots and a 101x103 grid
-        // the triangle numbers approaching 500 are:
-        // 253 (22nd), 276 (23rd), 300 (24th), 325 (25th), 351 (26th), 378 (27th),
-        // 406 (28th), 435 (29th), 465 (30th) and 496 (31st)
-
-        // so we should search for a row containing at least 23 contiguous occupied spaces ("most of the robots" and odd)
-        // if we find this then we check to see if the row above is of pattern .#####################. (21 contig with spaces at edge)
-        // if it is we've probably found it
-
-        // Looking at some spoilers it's not quite that easy
-        // but the approach of "find a run within a row, then check if there's a run in the row above" seems OK
-
-        for y in 0..height {
-            let mut run = 0_isize;
-            for x in 0..width {
-                if grid.contains(&[x, y]) {
-                    run += 1;
-                    if run >= 7_isize {
-                        // check for run in row above
-                        let yy = y - 1;
-                        let mut above = 0;
-                        for xx in (x - run)..=x {
-                            if grid.contains(&[xx, yy]) {
-                                above += 1;
-                            }
-                        }
-                        if above == run - 2 {
-                            println!("Possible Christmas Tree after {seconds} seconds");
-                            println!("{}", <HashSet<Coord> as Grid<char>>::visualise(&grid));
-                            return seconds;
-                        }
-                    }
-                } else {
-                    run = 0;
-                }
-            }
-        }
+        println!("{}", <HashSet<Coord> as Grid<char>>::visualise(&grid));
+        return -1;
     }
+}
 
-    println!(
-        "Could not find tree after {SECONDS_TOT} seconds; here's the grid on the last iteration"
-    );
-
-    let grid: HashSet<Coord> = robots_orig
+fn p2_helper(
+    robots: &[(Coord, Coord)],
+    seconds: isize,
+    width: isize,
+    height: isize,
+) -> Option<isize> {
+    let grid: HashSet<Coord> = robots
         .iter()
         .map(|([px, py], [vx, vy])| {
             [
-                (px + SECONDS_TOT * vx + (SECONDS_TOT * width)) % width,
-                (py + SECONDS_TOT * vy + (SECONDS_TOT * height)) % height,
+                (px + seconds * vx + (seconds * width)) % width,
+                (py + seconds * vy + (seconds * height)) % height,
             ]
         })
         .collect();
 
-    println!("{}", <HashSet<Coord> as Grid<char>>::visualise(&grid));
+    // we're looking for a picture of a christmas tree, which if rumour is to be believed means a block similar to the below
+    /*
+    ....#....
+    ...###...
+    ..#####..
+    .#######.
+    */
 
-    -1
+    // we have 500 robots and a 101x103 grid
+    // the triangle numbers approaching 500 are:
+    // 253 (22nd), 276 (23rd), 300 (24th), 325 (25th), 351 (26th), 378 (27th),
+    // 406 (28th), 435 (29th), 465 (30th) and 496 (31st)
+
+    // so we should search for a row containing at least 23 contiguous occupied spaces ("most of the robots" and odd)
+    // if we find this then we check to see if the row above is of pattern .#####################. (21 contig with spaces at edge)
+    // if it is we've probably found it
+
+    // Looking at some spoilers it's not quite that easy
+    // but the approach of "find a run within a row, then check if there's a run in the row above" seems OK
+
+    for y in 0..height {
+        let mut run = 0_isize;
+        for x in 0..width {
+            if grid.contains(&[x, y]) {
+                run += 1;
+                if run >= 7_isize {
+                    // check for run in row above
+                    let yy = y - 1;
+                    let mut above = 0;
+                    for xx in (x - run)..=x {
+                        if grid.contains(&[xx, yy]) {
+                            above += 1;
+                        }
+                    }
+                    if above == run - 2 {
+                        println!("Possible Christmas Tree after {seconds} seconds");
+                        println!("{}", <HashSet<Coord> as Grid<char>>::visualise(&grid));
+                        return Some(seconds);
+                    }
+                }
+            } else {
+                run = 0;
+            }
+        }
+    }
+    None
 }
 
 #[cfg(test)]
