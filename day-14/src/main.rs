@@ -1,19 +1,14 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fs::read_to_string,
-};
+use std::{collections::HashSet, fs::read_to_string};
 
 use anyhow::Result;
 use clap::Parser;
 use itertools::Itertools;
 use mapgrid::*;
-use nom;
 use rayon::{
     self,
     iter::{IntoParallelIterator, ParallelIterator},
 };
 use regex::Regex;
-use strum;
 
 #[derive(Parser)]
 pub struct Opts {
@@ -105,9 +100,9 @@ fn part_2(infile: &str, width: isize, height: isize) -> isize {
     //     println!("{r:?}");
     // }
 
-    const SECONDS_TOT: isize = 10_isize.pow(5);
+    let seconds_tot = width * height;
 
-    if let Some(seconds) = (0..SECONDS_TOT)
+    if let Some(seconds) = (0..seconds_tot)
         .into_par_iter()
         .filter_map(|s| p2_helper(&robots_orig, s, width, height))
         .min()
@@ -115,15 +110,15 @@ fn part_2(infile: &str, width: isize, height: isize) -> isize {
         return seconds;
     } else {
         println!(
-        "Could not find tree after {SECONDS_TOT} seconds; here's the grid on the last iteration"
+        "Could not find tree after {seconds_tot} seconds; here's the grid on the last iteration"
     );
 
         let grid: HashSet<Coord> = robots_orig
             .iter()
             .map(|([px, py], [vx, vy])| {
                 [
-                    (px + SECONDS_TOT * vx + (SECONDS_TOT * width)) % width,
-                    (py + SECONDS_TOT * vy + (SECONDS_TOT * height)) % height,
+                    (px + seconds_tot * vx + (seconds_tot * width)) % width,
+                    (py + seconds_tot * vy + (seconds_tot * height)) % height,
                 ]
             })
             .collect();
