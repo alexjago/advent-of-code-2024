@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{BTreeSet, HashMap, HashSet},
     fs::read_to_string,
 };
 
@@ -161,17 +161,17 @@ fn part_2(infile: &str) -> usize {
     // let mut vis = grid.clone();
 
     // alongside score, keep track of all visited coords
+    // (position, facing)
     let mut histories: HashMap<(Coord, Coord), HashSet<(Coord, Coord)>> = HashMap::new();
     histories.insert((start_pos.clone(), EAST), HashSet::new());
 
     let mut scores: HashMap<(Coord, Coord), usize> = HashMap::new();
     scores.insert((start_pos.clone(), EAST), 0);
 
-    let mut queue = vec![];
+    let mut queue: BTreeSet<(Coord, Coord)> = BTreeSet::new();
+    queue.insert((start_pos, EAST));
 
-    queue.push((start_pos, EAST));
-
-    while let Some((pos, facing)) = queue.pop() {
+    while let Some((pos, facing)) = queue.pop_first() {
         let sco = *scores.get(&(pos, facing)).unwrap_or(&usize::MAX);
 
         if sco > expected_score {
@@ -198,8 +198,11 @@ fn part_2(infile: &str) -> usize {
             {
                 scores.insert((newpos, newdir), newsco);
 
+                // PERF: the queue was previously a Vec
+                // EXPERIMENT: trying a BTreeSet instead of a Vec
+                // RESULT: way, way, way faster
                 if !queue.contains(&(newpos, newdir)) {
-                    queue.push((newpos, newdir));
+                    queue.insert((newpos, newdir));
                 }
 
                 let mut hist = histories
