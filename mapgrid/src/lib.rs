@@ -8,7 +8,7 @@ use std::{
 pub type Coord = [isize; 2];
 
 /// A Grid trait
-pub trait Grid<V> {
+pub trait Grid<V = char> {
     fn from_str_with<F: Fn(char) -> Option<V>>(input: &str, f: F) -> Self;
 
     fn bounds(&self) -> [RangeInclusive<isize>; 2];

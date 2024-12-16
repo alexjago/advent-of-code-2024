@@ -3,6 +3,7 @@ use std::fs::read_to_string;
 use anyhow::Result;
 use clap::Parser;
 use itertools::Itertools;
+use mapgrid::*;
 use nom;
 use regex;
 use strum;
