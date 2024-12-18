@@ -425,27 +425,28 @@ fn do_it(
         "done: {digits_done}, known: 0o{known_bits:o}, targeting: {:?}",
         &target[..(target.len() - digits_done)]
     );
-
-    // memoizing on known_bits and start_digit
-    if let Some(rez) = memo.get(&(known_bits % 8, digits_done)) {
-        println!(
-            "~~~ omg a hit tweet ~~~\t ({}, {}) => {rez:?}",
-            known_bits % 8,
-            digits_done
-        );
-        return rez.map(|x| (known_bits << (digits_done * 3)) | x);
-    }
-    if digits_done == target.len() {
+    if digits_done >= target.len() {
         return Some(known_bits);
     }
 
+    // memoizing on LSBs of known_bits and digits_done
+    // if let Some(rez) = memo.get(&(known_bits % 8, digits_done)) {
+    //     println!(
+    //         "~~~ omg a hit tweet ~~~\t ({}, {}) => {rez:?}",
+    //         known_bits % 8,
+    //         digits_done
+    //     );
+    //     return rez.map(|x| (known_bits << (digits_done * 3)) | x);
+    // }
+
     // loop over digit count
-    for digit_count in 1..=(target.len() - digits_done) {
-        let tt = &target[target.len() - (digits_done + digit_count)..(target.len() - digits_done)];
+    for digit_count in 1..=1 {
+        // 1..=(target.len() - digits_done) {
+        let tt = &target[target.len() - (digits_done + digit_count)..];
         println!("done: {digits_done}, trying next {digit_count} digits");
 
         for trial in 0_usize..(1 << (digit_count * 3)) {
-            let register = (known_bits % 8) << 3 | trial;
+            let register = (known_bits << (3 * digit_count)) | trial;
 
             // println!("\t{register:016o}");
 
@@ -454,19 +455,20 @@ fn do_it(
 
                 let rez = do_it(register, digits_done + digit_count, target, program, memo);
 
-                println!("subquery result: {rez:?}");
+                println!("subquery result: {rez:?} off {register}");
 
-                memo.insert(
-                    (known_bits % 8, digits_done),
-                    rez.map(|x| x % 2_usize.pow(3 * (target.len() - digits_done) as u32)),
-                );
+                // memo.insert(
+                //     (known_bits % 8, digits_done),
+                //     rez.map(|x| x % 2_usize.pow(3 * digits_done as u32)),
+                // );
 
-                if let Some(r) = rez {
-                    return Some((known_bits << (digits_done * 3)) | r);
+                if rez.is_some() {
+                    return rez;
                 }
+            } else {
             }
         }
-        memo.insert((known_bits % 8, digits_done), None);
+        // memo.insert((known_bits % 8, digits_done), None);
     }
     None
 }
@@ -543,10 +545,24 @@ Program: 0,3,5,4,3,0";
         let mut memo = HashMap::new();
         assert_eq!(do_it(0, 0, &[3, 0], PROGRAM, &mut memo), Some(0o56));
 
+        assert_eq!(part_1_inner(771968555, 0, 0, PROGRAM), PROGRAM[6..]);
+
         let mut memo = HashMap::new();
         let rez = do_it(0, 0, &PROGRAM[6..], PROGRAM, &mut memo);
         println!("{memo:?}");
         assert_eq!(rez, Some(771968555));
+
+        assert_eq!(part_1_inner(49405987532, 0, 0, PROGRAM), PROGRAM[4..]);
+
+        let mut memo = HashMap::new();
+        let rez = do_it(0, 0, &PROGRAM[4..], PROGRAM, &mut memo);
+        println!("{memo:?}");
+        assert_eq!(rez, Some(49405987532));
+
+        let mut memo = HashMap::new();
+        let rez = do_it(0, 0, &PROGRAM[0..], PROGRAM, &mut memo);
+        println!("{memo:?}");
+        assert_eq!(part_1_inner(rez.unwrap(), 0, 0, PROGRAM), PROGRAM);
     }
 
     #[test]
