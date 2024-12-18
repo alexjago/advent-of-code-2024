@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "advent-of-code-2024"
-version = "0.16.2"
+version = "0.17.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -390,6 +390,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "day-17"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "itertools",
+ "mapgrid",
+ "nom",
+ "regex",
+ "strum",
+]
+
+[[package]]
 name = "derive_more"
 version = "0.99.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -506,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "mapgrid"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "derive_more",
 ]
