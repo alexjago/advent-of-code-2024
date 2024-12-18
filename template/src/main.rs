@@ -1,6 +1,9 @@
 use anyhow::Result;
 use clap::Parser;
+use clap_verbosity_flag::Verbosity;
+use env_logger;
 use itertools::Itertools;
+use log::{debug, info, warn};
 use mapgrid::*;
 use nom;
 use regex;
@@ -10,11 +13,18 @@ use strum;
 
 #[derive(Parser)]
 pub struct Opts {
+    /// Tell me more (or less)
+    #[clap(flatten)]
+    verbose: Verbosity<clap_verbosity_flag::InfoLevel>,
+    /// Input file
     infile: std::path::PathBuf,
 }
 
 fn main() -> Result<()> {
     let opts: Opts = clap::Parser::parse();
+    env_logger::Builder::new()
+        .filter_level(opts.verbose.log_level_filter())
+        .init();
 
     let infile = read_to_string(opts.infile)?;
 

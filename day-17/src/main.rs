@@ -1,20 +1,27 @@
 use anyhow::Result;
 use clap::Parser;
+use clap_verbosity_flag::Verbosity;
+use env_logger;
 use itertools::Itertools;
-use mapgrid::*;
-use nom;
-use regex::{self, Match, Regex};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use log::{debug, error, info, trace, warn};
+use regex::{self, Regex};
 use std::fs::read_to_string;
-use strum;
 
 #[derive(Parser)]
 pub struct Opts {
+    /// Tell me more (or less)
+    #[clap(flatten)]
+    verbose: Verbosity<clap_verbosity_flag::InfoLevel>,
+    /// Input file
     infile: std::path::PathBuf,
 }
 
 fn main() -> Result<()> {
     let opts: Opts = clap::Parser::parse();
+
+    env_logger::Builder::new()
+        .filter_level(opts.verbose.log_level_filter())
+        .init();
 
     let infile = read_to_string(opts.infile)?;
 
@@ -50,7 +57,7 @@ struct State {
 }
 
 /// returns
-/// (ip, reg_a, reg_b, reg_c, Option<out>)
+/// `(ip, reg_a, reg_b, reg_c, Option<out>)`
 /// might panic
 fn p1_step(instrs: &[usize], state: State) -> (State, Option<usize>) {
     let mut ip = state.ip;
@@ -63,10 +70,10 @@ fn p1_step(instrs: &[usize], state: State) -> (State, Option<usize>) {
     // in theory, this could panic
     let op = instrs[ip + 1];
 
-    // println!(
-    //     "ip: {ip}\tinstr: {instr} ({})\top: {op:o}\tA: {reg_a:o}\tB: {reg_b:o}\tC: {reg_c:o}",
-    //     INSTR_NAMES[instr]
-    // );
+    trace!(
+        "ip: {ip}\tinstr: {instr} ({})\top: {op:o}\tA: {reg_a:o}\tB: {reg_b:o}\tC: {reg_c:o}",
+        INSTR_NAMES[instr]
+    );
 
     let mut instr_step = 2;
 
@@ -126,7 +133,7 @@ fn p1_step(instrs: &[usize], state: State) -> (State, Option<usize>) {
 }
 
 fn part_1(infile: &str) -> Vec<usize> {
-    /*
+    /*!
     Is this the return of the infamous Intcode?
 
     - three bits (can store 0-7)
@@ -134,12 +141,7 @@ fn part_1(infile: &str) -> Vec<usize> {
     - eight instructions
         - each takes either a literal operand (3 bit number)
         - or a combo operand (0-3: literal 0-3; 4: A, 5: B, 6, C, no 7)
-
-    for my input, 742050537 is the wrong answer grr
     */
-
-    // println!("\n----- ----- -----\n");
-
     let re = Regex::new(r"\d+").unwrap();
 
     let mut digits = re.find_iter(infile);
@@ -153,10 +155,10 @@ fn part_1(infile: &str) -> Vec<usize> {
         .filter_map(|x| x.ok())
         .collect();
 
-    // println!(
-    //     "Instructions:\n{}\n",
-    //     instrs.clone().into_iter().join("   ")
-    // );
+    trace!(
+        "Instructions:\n{}\n",
+        instrs.clone().into_iter().join("   ")
+    );
 
     part_1_inner(reg_a, reg_b, reg_c, &instrs)
 }
@@ -169,7 +171,7 @@ fn part_1_inner(reg_a: usize, reg_b: usize, reg_c: usize, instrs: &[usize]) -> V
     let mut reg_b = reg_b;
     let mut reg_c = reg_c;
 
-    // println!("EXECUTION TRACE:\nNote that all numbers (except ip) should be in OCTAL.\nInstructions with combo operands in CAPS.");
+    trace!("EXECUTION TRACE:\nNote that all numbers (except ip) should be in OCTAL.\nInstructions with combo operands in CAPS.");
 
     while ip < instrs.len() {
         let rez = p1_step(
@@ -186,7 +188,7 @@ fn part_1_inner(reg_a: usize, reg_b: usize, reg_c: usize, instrs: &[usize]) -> V
             out.push(o);
         }
 
-        // println!("\tout: {out:?}");
+        trace!("\tout: {out:?}");
 
         ip = rez.0.ip;
         reg_a = rez.0.reg_a;
@@ -197,190 +199,100 @@ fn part_1_inner(reg_a: usize, reg_b: usize, reg_c: usize, instrs: &[usize]) -> V
     out
 }
 
-fn part_2_orig(infile: &str) -> usize {
-    // we're making a quine!
-    // answer for this one:
-    // the correct value of register A
+/**
+we're making a quine!
+answer for this one:
+the correct value of register A
 
-    // ok so for  MY PARTICULAR PROGRAM
+ok so for  MY PARTICULAR PROGRAM
 
-    /*
-     0. bst(a) // b = a % 8
-     2. bxl(1) // b = b ^ 1
-     4. cdv(b) // c = a >> (b % 8)
-     6. bxc(4) // b = b ^ c // == b ^ (a >> (b % 8))
-     8. bxl(4) // b = b ^ 4
-    10. adv(3) // a = a >> 3
-    12. out(b) // output (b % 8)
-    14. jnz(0) // if (a==0), jump to 0 (else halt)
+ 0. bst(a) // b = a % 8
+ 2. bxl(1) // b = b ^ 1
+ 4. cdv(b) // c = a >> (b % 8)
+ 6. bxc(4) // b = b ^ c // == b ^ (a >> (b % 8))
+ 8. bxl(4) // b = b ^ 4
+10. adv(3) // a = a >> 3
+12. out(b) // output (b % 8)
+14. jnz(0) // if (a==0), jump to 0 (else halt)
 
-     */
 
-    /* So structurally my program is
+So structurally my program is
 
-    generate a value for b from a
-    shift a
-    loop
+generate a value for b from a
+shift a
+loop
 
-    and B, C are overwritten each time
+and B, C are overwritten each time
 
-    insight: since we output b mod 8, its higher order bits (acquired at instr 6) don't matter for the result
+insight: since we output b mod 8, its higher order bits (acquired at instr 6) don't matter for the result
 
-    */
 
-    /*
+(( (a >> ((a % 8) ^ 1) ) ^ ((a % 8) ^ 1) ) ^ 4 ) % 8
 
-    (( (a >> ((a % 8) ^ 1) ) ^ ((a % 8) ^ 1) ) ^ 4 ) % 8
+so when we have an (octal) output digit D
 
-    so when we have an (octal) output digit D
+D = (a >> ((a % 8) ^ 1) ) ^ ((a % 8) ^ 1)  ^ 4 // implicitly,  all % 8
 
-    D = (a >> ((a % 8) ^ 1) ) ^ ((a % 8) ^ 1)  ^ 4 // implicitly,  all % 8
+(D ^ 4) = (a >> ((a % 8) ^ 1) ) ^ ((a % 8) ^ 1)
 
-    (D ^ 4) = (a >> ((a % 8) ^ 1) ) ^ ((a % 8) ^ 1)
+I suppose at this point we have 7 or 8 options for D
+or more accurately we can try 8 different values for ((a % 8) ^ 1)
+which then implies some value for the relevant digit when a >> ((a % 8) ^ 1)
 
-    // I suppose at this point we have 7 or 8 options for D
-    // or more accurately we can try 8 different values for ((a % 8) ^ 1)
-    // which then implies some value for the relevant digit when a >> ((a % 8) ^ 1)
-    */
+suppose we have to generate instruction D=2
 
-    // suppose we have to generate instruction D=2
 
-    /*
+then D ^ 4 = 6
 
-    then D ^ 4 = 6
+(a >> ((a % 8) ^ 1)) ^ ((a % 8) ^ 1) == 6, solve for `a`
+(there are only 64 options to check: 8 for the lower bits and 8 for the higher bits)
 
-    (a >> ((a % 8) ^ 1)) ^ ((a % 8) ^ 1) == 6, solve for `a`
-    (there are only 64 options to check: 8 for the lower bits and 8 for the higher bits)
+now, this also sets some higher bits in A, which... i'm not sure how to deal with yet
 
-    now, this also sets some higher bits in A, which... i'm not sure how to deal with yet
 
-    */
-
-    // for target in 0_usize..8 {
-    //     for lo in 0_usize..8 {
-    //         for hi in 0_usize..8 {
-    //             if (hi >> (lo ^ 1)) ^ (lo ^ 1) == target {
-    //                 println!(
-    //                     "0o{:04o} ({hi}, {lo}) works for {target}",
-    //                     (hi << (lo ^ 1)) | lo
-    //                 );
-    //             }
-    //         }
-    //     }
-    // }
-
-    // can we solve this from the last instruction-digit (MSBs of A), or do we have to go from the first digit? (LSBs of A)
-
-    // we do have to consider non-multiples-of-three-bit shifts too
-
-    // consider a recursive? algo which takes as input {bit_idx: u1} to indicate already-set bits? Plus a target digit.
-    // Ideally we would normalise so that the LSB for our shifted digit is idx 0?
-    // Or we build from the MSB of A down
-    // eg our final digit is 0, so we can make that as 4, (generated as hi = 2, lo = 0) or 6 (via hi = 3, lo = 0) or 1 (via hi = 0, lo = 1)
-    // the lowest of these is 1, but we can't be super sure that lower digits can't use this
-    // we have 16 digits total so this is bits 45-47
-    // going with 0o1 for now
-    // set {45: 1, 46: 0, 47: 0} and recurse to ...
-    // ... next digit 3
-    // we can build 3 in several different ways
-    // 0o10 (4, 0), 0o12 (5, 0), 0o3 (3, 1), 0o12 (1, 2) and many more
-    // of these only 0o10 and 0o12 match our existing constraints...
-    // set either {42: 0, 43: 0, 44: 0, 45: 1, 46: 0, 47: 0} for 0o10xxxxxxxxxxxxxx
-    // or maybe   {42: 0, 43: 1, 44: 0, 45: 1, 46: 0, 47: 0} for 0o12xxxxxxxxxxxxxx
-
-    // YOLO 1, let's try it
-    // huh, that didn't work
-    // what happened here is that by the time we got to building the second digit, A had been shifted down to only one digit
-    // so maybe we need another digit on A?
-    // no, we need the same number of digits on A as instructions in the output
-
-    let mut outcomes: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
-    for register_a in 0_usize..0o200 {
-        let sss = format!("{register_a} 0 0    2,4,1,1,7,5,4,4,1,4,0,3,5,5,3,0");
-        let rez = part_1(&sss);
-        outcomes.insert(register_a, rez);
-    }
-    for (k, v) in outcomes {
-        println!("{k:04o} ==> {v:?}");
-    }
-
-    println!("{:?} => [4]", set_bits_to_output(&BTreeMap::new(), vec![4]));
-    println!(
-        "{:?} => [3, 0]",
-        set_bits_to_output(&BTreeMap::new(), vec![3, 0])
-    );
-    println!(
-        "{:?} => [1, 4]",
-        set_bits_to_output(&BTreeMap::new(), vec![1, 4])
-    );
-
-    todo!()
-}
-
-fn set_bits_to_output(input: &BTreeMap<usize, bool>, target: Vec<usize>) -> Option<usize> {
-    let mut mask_out = usize::MAX;
-    let mut mask_in = 0;
-
-    for (k, v) in input.iter() {
-        if *k < 64 {
-            mask_out ^= 1 << (*k);
-            mask_in |= (*v as usize) << (*k);
-        }
-    }
-
-    // our hunting license extends for 7 bits above the set-bits assuming just the one relevant shift
-    let bits = target.len() * 3 + 7;
-
-    for i in 0_usize..(1 << bits) {
-        let register = (i & mask_out) | mask_in;
-        if part_1(&format!("{} 0 0 2,4,1,1,7,5,4,4,1,4,0,3,5,5,3,0", register)) == target {
-            return Some(register);
-        }
-    }
-
-    None
-}
-
-/*
-fn i_love_recursion(
-    input: BTreeMap<usize, bool>,
-    target: Vec<usize>,
-    done: usize,
-) -> Option<usize> {
-    for digit_count in done..target.len() {
-        let mut mask_out = usize::MAX;
-        let mut mask_in = 0;
-
-        for (k, v) in input.iter() {
-            if *k < 64 {
-                mask_out ^= 1 << (*k);
-                mask_in |= (*v as usize) << (*k);
-            }
-        }
-
-        // our hunting license extends for 7 bits above the set-bits assuming just the one relevant shift
-
-        let low_bit = digit_count * 3;
-        let high_bit = digit_count * 3 + 8;
-
-        for i in ((1 << low_bit) - 1)..(1 << high_bit) {
-            let register = (i & mask_out) | mask_in;
-
-            if register < i {
-                continue;
-            }
-            if part_1(&format!("{} 0 0 2,4,1,1,7,5,4,4,1,4,0,3,5,5,3,0", register))
-                == target[(target.len() - done - 1)..]
-            {
-                return Some(register);
+```rust
+for target in 0_usize..8 {
+    for lo in 0_usize..8 {
+        for hi in 0_usize..8 {
+            if (hi >> (lo ^ 1)) ^ (lo ^ 1) == target {
+                println!(
+                    "0o{:04o} ({hi}, {lo}) works for {target}",
+                    (hi << (lo ^ 1)) | lo
+                );
             }
         }
     }
-    None
 }
-*/
+```
 
-/*
+can we solve this from the last instruction-digit (MSBs of A), or do we have to go from the first digit? (LSBs of A)
+
+we do have to consider non-multiples-of-three-bit shifts too
+
+consider a recursive? algo which takes as input {bit_idx: u1} to indicate already-set bits? Plus a target digit.
+Ideally we would normalise so that the LSB for our shifted digit is idx 0?
+Or we build from the MSB of A down
+eg our final digit is 0, so we can make that as 4, (generated as hi = 2, lo = 0) or 6 (via hi = 3, lo = 0) or 1 (via hi = 0, lo = 1)
+the lowest of these is 1, but we can't be super sure that lower digits can't use this
+we have 16 digits total so this is bits 45-47
+going with 0o1 for now
+set {45: 1, 46: 0, 47: 0} and recurse to ...
+... next digit 3
+we can build 3 in several different ways
+0o10 (4, 0), 0o12 (5, 0), 0o3 (3, 1), 0o12 (1, 2) and many more
+of these only 0o10 and 0o12 match our existing constraints...
+set either {42: 0, 43: 0, 44: 0, 45: 1, 46: 0, 47: 0} for 0o10xxxxxxxxxxxxxx
+or maybe   {42: 0, 43: 1, 44: 0, 45: 1, 46: 0, 47: 0} for 0o12xxxxxxxxxxxxxx
+
+YOLO 1, let's try it
+huh, that didn't work
+what happened here is that by the time we got to building the second digit, A had been shifted down to only one digit
+so maybe we need another digit on A?
+no, we need the same number of digits on A as instructions in the output
+
+
+***************
+
 
 I love recursion!
 
@@ -409,19 +321,15 @@ but crucially, the final output, output[N-1], can *only* depend on bits (N-1)*3 
 
 So we only have 3 bits for a one-digit output, 6 bits for a two-digit, etc
 
-we can productionise this
-
-
+we can productionise this...
 */
-
 fn do_it(
-    known_bits: usize,                                 // prefix of register A
-    digits_done: usize,                                // qty of known digits (starting at the last)
-    target: &[usize],                                  // program text to match against
-    program: &[usize],                                 // actual program text
-    memo: &mut HashMap<(usize, usize), Option<usize>>, // cache by `known_bits` and `digits_done`
+    known_bits: usize,  // prefix of register A
+    digits_done: usize, // qty of known digits (starting at the last)
+    target: &[usize],   // program text to match against
+    program: &[usize],  // actual program text
 ) -> Option<usize> {
-    println!(
+    debug!(
         "done: {digits_done}, known: 0o{known_bits:o}, targeting: {:?}",
         &target[..(target.len() - digits_done)]
     );
@@ -429,53 +337,30 @@ fn do_it(
         return Some(known_bits);
     }
 
-    // memoizing on LSBs of known_bits and digits_done
-    // if let Some(rez) = memo.get(&(known_bits % 8, digits_done)) {
-    //     println!(
-    //         "~~~ omg a hit tweet ~~~\t ({}, {}) => {rez:?}",
-    //         known_bits % 8,
-    //         digits_done
-    //     );
-    //     return rez.map(|x| (known_bits << (digits_done * 3)) | x);
-    // }
+    let tt = &target[target.len() - (digits_done + 1)..];
+    debug!("done: {digits_done}, trying next digit");
 
-    // loop over digit count
-    for digit_count in 1..=1 {
-        // 1..=(target.len() - digits_done) {
-        let tt = &target[target.len() - (digits_done + digit_count)..];
-        println!("done: {digits_done}, trying next {digit_count} digits");
+    for trial in 0_usize..(1 << 3) {
+        let register = (known_bits << 3) | trial;
 
-        for trial in 0_usize..(1 << (digit_count * 3)) {
-            let register = (known_bits << (3 * digit_count)) | trial;
+        // trace!("\t{register:016o}");
 
-            // println!("\t{register:016o}");
+        if part_1_inner(register, 0, 0, program) == tt {
+            debug!("done: {digits_done}, trialled: 0o{register:o}, targeting {tt:?}  was SUCCESSFUL, moving on");
 
-            if part_1_inner(register, 0, 0, program) == tt {
-                println!("done: {digits_done}, width: {digit_count}, trialled: 0o{register:o}, targeting {tt:?}  was SUCCESSFUL, moving on");
+            let rez = do_it(register, digits_done + 1, target, program);
 
-                let rez = do_it(register, digits_done + digit_count, target, program, memo);
+            debug!("subquery result: {rez:?} off {register}");
 
-                println!("subquery result: {rez:?} off {register}");
-
-                // memo.insert(
-                //     (known_bits % 8, digits_done),
-                //     rez.map(|x| x % 2_usize.pow(3 * digits_done as u32)),
-                // );
-
-                if rez.is_some() {
-                    return rez;
-                }
-            } else {
+            if rez.is_some() {
+                return rez;
             }
         }
-        // memo.insert((known_bits % 8, digits_done), None);
     }
     None
 }
 
 fn part_2(infile: &str) -> usize {
-    let mut memo = HashMap::new();
-
     let re = Regex::new(r"\d+").unwrap();
 
     let digits = re.find_iter(infile);
@@ -486,7 +371,7 @@ fn part_2(infile: &str) -> usize {
         .filter_map(|x| x.ok())
         .collect();
 
-    do_it(0, 0, &instrs, &instrs, &mut memo).expect("This should be solveable!")
+    do_it(0, 0, &instrs, &instrs).expect("This should be solveable!")
 }
 
 #[cfg(test)]
@@ -542,26 +427,19 @@ Program: 0,3,5,4,3,0";
 
     #[test]
     fn part_2_do_it() {
-        let mut memo = HashMap::new();
-        assert_eq!(do_it(0, 0, &[3, 0], PROGRAM, &mut memo), Some(0o56));
+        assert_eq!(do_it(0, 0, &[3, 0], PROGRAM), Some(0o56));
 
         assert_eq!(part_1_inner(771968555, 0, 0, PROGRAM), PROGRAM[6..]);
 
-        let mut memo = HashMap::new();
-        let rez = do_it(0, 0, &PROGRAM[6..], PROGRAM, &mut memo);
-        println!("{memo:?}");
+        let rez = do_it(0, 0, &PROGRAM[6..], PROGRAM);
         assert_eq!(rez, Some(771968555));
 
         assert_eq!(part_1_inner(49405987532, 0, 0, PROGRAM), PROGRAM[4..]);
 
-        let mut memo = HashMap::new();
-        let rez = do_it(0, 0, &PROGRAM[4..], PROGRAM, &mut memo);
-        println!("{memo:?}");
+        let rez = do_it(0, 0, &PROGRAM[4..], PROGRAM);
         assert_eq!(rez, Some(49405987532));
 
-        let mut memo = HashMap::new();
-        let rez = do_it(0, 0, &PROGRAM[0..], PROGRAM, &mut memo);
-        println!("{memo:?}");
+        let rez = do_it(0, 0, &PROGRAM[0..], PROGRAM);
         assert_eq!(part_1_inner(rez.unwrap(), 0, 0, PROGRAM), PROGRAM);
     }
 
