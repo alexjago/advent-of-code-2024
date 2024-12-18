@@ -19,7 +19,7 @@ fn main() -> Result<()> {
     let infile = read_to_string(opts.infile)?;
 
     println!("Part 1:\n{}", part_1(&infile, 1024, 70));
-    println!("Part 2:\n{}", part_2(&infile));
+    println!("Part 2:\n{}", part_2(&infile, 1024, 70));
 
     Ok(())
 }
@@ -34,7 +34,7 @@ fn part_1(infile: &str, falls: usize, max: isize) -> usize {
         .map(|(x, y)| [x, y])
         .collect();
 
-    println!("{}", <HashSet<Coord> as Grid>::visualise(&walls));
+    // println!("{}", <HashSet<Coord> as Grid>::visualise(&walls));
 
     let mut combine = HashMap::new();
 
@@ -47,12 +47,30 @@ fn part_1(infile: &str, falls: usize, max: isize) -> usize {
     for k in &path {
         combine.insert(k.clone(), 'O');
     }
-    println!("{}", <HashMap<Coord, char> as Grid>::visualise(&combine));
+    /*
+    println!(
+        "{}len={}\n",
+        <HashMap<Coord, char> as Grid>::visualise(&combine),
+        path.len()
+    );
+    */
 
     path.len()
 }
-fn part_2(infile: &str) -> usize {
-    todo!()
+
+fn part_2(infile: &str, falls: usize, max: isize) -> &str {
+    for (i, snowflake) in infile
+        .lines()
+        .enumerate()
+        .map(|(x, s)| (x + 1, s))
+        .skip(falls)
+    {
+        // println!("{i}:  {snowflake}");
+        if part_1(infile, i, max) == 0 {
+            return snowflake;
+        }
+    }
+    panic!()
 }
 
 const DIRS: [Coord; 4] = [[0, 1], [0, -1], [1, 0], [-1, 0]];
@@ -93,6 +111,10 @@ fn simple_maze(
     }
 
     let mut here = end;
+
+    if !visited.contains_key(&end) {
+        return out;
+    }
 
     loop {
         let here_dist = visited.get(&here).unwrap();
@@ -153,6 +175,6 @@ mod test {
 
     #[test]
     fn part_2_example() {
-        assert_eq!(part_2(EXAMPLE_1), todo!());
+        assert_eq!(part_2(EXAMPLE_1, 12, 6), "6,1");
     }
 }
