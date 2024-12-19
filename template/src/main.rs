@@ -24,6 +24,10 @@ fn main() -> Result<()> {
     let opts: Opts = clap::Parser::parse();
     env_logger::Builder::new()
         .filter_level(opts.verbose.log_level_filter())
+        .format_timestamp(None)
+        .format_module_path(false)
+        .format_target(false)
+        .format_level(false)
         .init();
 
     let infile = read_to_string(opts.infile)?;

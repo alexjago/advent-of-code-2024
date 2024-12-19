@@ -9,7 +9,7 @@ use std::fs::read_to_string;
 
 #[derive(Parser)]
 pub struct Opts {
-    /// Tell me more (or less)
+    /// Tell me more (or less).
     #[clap(flatten)]
     verbose: Verbosity<clap_verbosity_flag::InfoLevel>,
     /// Input file
@@ -21,6 +21,10 @@ fn main() -> Result<()> {
 
     env_logger::Builder::new()
         .filter_level(opts.verbose.log_level_filter())
+        .format_timestamp(None)
+        .format_module_path(false)
+        .format_target(false)
+        .format_level(false)
         .init();
 
     let infile = read_to_string(opts.infile)?;
