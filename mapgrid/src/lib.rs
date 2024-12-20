@@ -9,6 +9,7 @@ pub type Coord = [isize; 2];
 pub trait Grid<V = char> {
     fn from_str_with<F: Fn(char) -> Option<V>>(input: &str, f: F) -> Self;
 
+    /// Returns [xmin..=xmax, ymin..=ymax]
     fn bounds(&self) -> [RangeInclusive<isize>; 2];
 
     fn visualise(&self) -> String;
